@@ -16,14 +16,23 @@
 
 struct _HildonTimeZoneChooser
 {
+  /** Current city */
   Cityinfo *cityinfo;
+  /** HildonStackbleWindow that contains #vbox and #toolbar */
   GtkWidget *window;
+  /** GtkVBox containing #HildonPannableMap and the #label */
   GtkWidget *vbox;
+  /** HildonEditToobar for typing the city name*/
   GtkWidget *toolbar;
+  /** HildonButton that starts searching */
   GtkWidget *search_button;
+  /** #HildonPannableMap instance */
   HildonPannableMap *map;
+  /** Holds the result of #hildon_time_zone_chooser_run */
   FeedbackDialogResponse response;
+  /** Contains curently selected city timezone */
   GtkWidget *label;
+  /** Periodic update timer id */
   guint run_timer_id;
 };
 
@@ -71,20 +80,23 @@ _map_update_cb(const Cityinfo *city, gpointer user_data)
 
     if (utc_offset % 3600)
     {
-      utc_offset_hours = utc_offset / -3600;
       int utc_offset_minutes = (utc_offset % 3600) / 60;
+      const char *fmt;
+
+      utc_offset_hours = utc_offset / -3600;
 
       if (utc_offset_minutes < 0)
           utc_offset_minutes = -utc_offset_minutes;
 
-      tz = g_strdup_printf(_("osso-clock", "cloc_fi_timezonefull_minutes"),
-                           utc_offset_hours, utc_offset_minutes,
+      fmt = _("osso-clock", "cloc_fi_timezonefull_minutes");
+      tz = g_strdup_printf(fmt, utc_offset_hours, utc_offset_minutes,
                            city_name, country);
     }
     else
     {
-      tz = g_strdup_printf(_("osso-clock", "cloc_fi_timezonefull"),
-                           utc_offset_hours, city_name, country);
+      const char *fmt = _("osso-clock", "cloc_fi_timezonefull");
+
+      tz = g_strdup_printf(fmt, utc_offset_hours, city_name, country);
     }
 
     markup = g_strdup_printf("<span>%s</span>", tz);
