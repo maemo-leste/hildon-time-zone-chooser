@@ -294,15 +294,18 @@ run_timeout_cb(gpointer user_data)
 FeedbackDialogResponse
 hildon_time_zone_chooser_run(HildonTimeZoneChooser *chooser)
 {
-  GdkDisplay *dpy = gdk_drawable_get_display(chooser->window->window);
-
+  GdkWindow *window;
+  GdkDisplay *dpy;
   unsigned long val = 1;
 
   gtk_widget_show_all(chooser->window);
   gtk_window_fullscreen(GTK_WINDOW(chooser->window));
 
+  window = gtk_widget_get_window (chooser->window);
+  dpy = gdk_window_get_display(window);
+
   XChangeProperty(gdk_x11_display_get_xdisplay(dpy),
-                  gdk_x11_drawable_get_xid(chooser->window->window),
+                  gdk_x11_drawable_get_xid(window),
                   gdk_x11_get_xatom_by_name_for_display(
                     dpy, "_HILDON_ZOOM_KEY_ATOM"),
                   XA_INTEGER, 32, PropModeReplace, (unsigned char *)&val, 1);
