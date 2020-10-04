@@ -1,4 +1,4 @@
-lib_LTLIBRARIES = libhildon_time_zone_chooser0.la
+lib_LTLIBRARIES = libhildon-time-zone-chooser0.la
 
 libhildon_time_zone_chooser0_la_CFLAGS = \
 		$(HILDON_CFLAGS) $(CITYINFO_CFLAGS) $(TIME_CFLAGS) \
