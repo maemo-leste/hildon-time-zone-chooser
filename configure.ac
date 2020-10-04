@@ -1,6 +1,7 @@
 AC_INIT([hildon-time-zone-chooser], [1.00])
 AC_CANONICAL_SYSTEM
 
+AC_CONFIG_MACRO_DIRS([m4])
 AM_CONFIG_HEADER(config.h)
 
 AM_MAINTAINER_MODE
@@ -47,17 +48,18 @@ PKG_CHECK_MODULES(GDB, gdk-2.0)
 AC_SUBST(GDK_CFLAGS)
 AC_SUBST(GDK_LIBS)
 
+PKG_CHECK_MODULES(CLOCKCORE, libclockcore0-0)
+AC_SUBST(CLOCKCORE_CFLAGS)
+AC_SUBST(CLOCKCORE_LIBS)
+
 #+++++++++++++++++++
 # Directories setup
 #+++++++++++++++++++
 
-dnl Localization
-GETTEXT_PACKAGE=osso-clock
-AC_SUBST(GETTEXT_PACKAGE)
-AC_DEFINE_UNQUOTED(GETTEXT_PACKAGE, "${GETTEXT_PACKAGE}", [gettext package])
-
-AC_OUTPUT([
+AC_CONFIG_FILES([
 Makefile
 src/Makefile
+hildon-time-zone-chooser.pc
 ])
 
+AC_OUTPUT

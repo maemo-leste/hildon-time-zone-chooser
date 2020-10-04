@@ -1,6 +1,6 @@
 #include <cityinfo.h>
 #include <hildon/hildon.h>
-#include "../../clock/include/clockcore-cities.h"
+#include <clock/clockcore-cities.h>
 #include <math.h>
 
 #include "hildon-time-zone-pannable-map.h"
