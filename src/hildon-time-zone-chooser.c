@@ -2,6 +2,9 @@
 #include <clockd/libtime.h>
 #include <hildon/hildon.h>
 #include <cityinfo.h>
+#include <X11/Xlib.h>
+#include <X11/Xatom.h>
+#include <gdk/gdkx.h>
 
 #include <libintl.h>
 
@@ -13,19 +16,18 @@
 
 struct _HildonTimeZoneChooser
 {
-  int gap0;
+  Cityinfo *cityinfo;
   GtkWidget *window;
   GtkWidget *vbox;
   GtkWidget *toolbar;
   GtkWidget *search_button;
   HildonPannableMap *map;
-  int field_18;
-  int field_1C;
+  FeedbackDialogResponse response;
   GtkWidget *label;
-  int field_24;
+  guint run_timer_id;
 };
 
-#define _(msgid) dgettext(GETTEXT_PACKAGE, msgid)
+#define _(domainname, msgid) dgettext(domainname, msgid)
 
 static gboolean
 _window_key_press_event_cb(GtkWidget *widget, GdkEventKey *event,
@@ -57,7 +59,8 @@ _map_update_cb(const Cityinfo *city, gpointer user_data)
 {
   HildonTimeZoneChooser *chooser = user_data;
 
-  if (city && chooser && chooser->field_18 != 1)
+  if (city && chooser &&
+      chooser->response != FEEDBACK_DIALOG_RESPONSE_CITY_CHOSEN)
   {
     gchar *tz;
     gchar *markup;
@@ -74,14 +77,14 @@ _map_update_cb(const Cityinfo *city, gpointer user_data)
       if (utc_offset_minutes < 0)
           utc_offset_minutes = -utc_offset_minutes;
 
-      tz = g_strdup_printf(_("cloc_fi_timezonefull_minutes"),
+      tz = g_strdup_printf(_("osso-clock", "cloc_fi_timezonefull_minutes"),
                            utc_offset_hours, utc_offset_minutes,
                            city_name, country);
     }
     else
     {
-      tz = g_strdup_printf(_("cloc_fi_timezonefull"), utc_offset_hours,
-                           city_name, country);
+      tz = g_strdup_printf(_("osso-clock", "cloc_fi_timezonefull"),
+                           utc_offset_hours, city_name, country);
     }
 
     markup = g_strdup_printf("<span>%s</span>", tz);
@@ -115,10 +118,10 @@ _toolbar_arrow_clicked_cb(HildonEditToolbar *widget, gpointer user_data)
 {
   HildonTimeZoneChooser *chooser = user_data;
 
-  chooser->field_18 = 2;
+  chooser->response = FEEDBACK_DIALOG_RESPONSE_CANCELLED;
   hildon_pannable_map_stop(chooser->map);
-  g_source_remove(chooser->field_24);
-  chooser->field_24 = 0;
+  g_source_remove(chooser->run_timer_id);
+  chooser->run_timer_id = 0;
   gtk_widget_hide_all(chooser->window);
   gtk_main_quit();
 }
@@ -133,16 +136,14 @@ void
 _toolbar_button_clicked_cb(HildonEditToolbar *widget, gpointer user_data)
 {
   HildonTimeZoneChooser *chooser = user_data;
-  HildonPannableMap *v4; // r0
-  Cityinfo *city; // r5
+  Cityinfo *city;
 
-
-  chooser->field_18 = 1;
+  chooser->response = FEEDBACK_DIALOG_RESPONSE_CITY_CHOSEN;
   gtk_widget_hide_all(chooser->window);
   hildon_pannable_map_stop(chooser->map);
 
-  g_source_remove(chooser->field_24);
-  chooser->field_24 = 0;
+  g_source_remove(chooser->run_timer_id);
+  chooser->run_timer_id = 0;
 
   city = hildon_pannable_map_get_city(chooser->map);
 
@@ -164,7 +165,7 @@ hildon_time_zone_chooser_new()
   if (!chooser)
     return NULL;
 
-  chooser->field_18 = 0;
+  chooser->response = FEEDBACK_DIALOG_RESPONSE_UNKNOWN;
 
   chooser->window = hildon_stackable_window_new();
   hildon_program_add_window(hildon_program_get_instance(),
@@ -176,12 +177,13 @@ hildon_time_zone_chooser_new()
   gtk_misc_set_alignment(GTK_MISC(chooser->label), 0.5, 0.0);
 
   chooser->toolbar = hildon_edit_toolbar_new_with_text(
-        _("cloc_ia_choose_time_zone"), dgettext("hildon-libs", "wdgt_bd_done"));
+        _("osso-clock", "cloc_ia_choose_time_zone"),
+        _("hildon-libs", "wdgt_bd_done"));
   hildon_window_set_edit_toolbar(HILDON_WINDOW(chooser->window),
                                  HILDON_EDIT_TOOLBAR(chooser->toolbar));
 
   gtk_window_set_title(GTK_WINDOW(chooser->window),
-                       _("cloc_ia_choose_time_zone"));
+                       _("osso-clock", "cloc_ia_choose_time_zone"));
 
   chooser->vbox = gtk_vbox_new(FALSE, 0);
   gtk_container_add(GTK_CONTAINER(chooser->window), chooser->vbox);
@@ -219,4 +221,84 @@ hildon_time_zone_chooser_new()
   g_object_unref(icon);
 
   return chooser;
+}
+
+void
+hildon_time_zone_chooser_set_city(HildonTimeZoneChooser *chooser,
+                                  Cityinfo *cityinfo)
+{
+  if (cityinfo)
+  {
+    if (chooser->cityinfo)
+      cityinfo_free(chooser->cityinfo);
+
+    chooser->cityinfo = cityinfo_clone(cityinfo);
+    hildon_pannable_map_set_city(chooser->map, chooser->cityinfo);
+  }
+}
+
+Cityinfo *
+hildon_time_zone_chooser_get_city(HildonTimeZoneChooser *chooser)
+{
+  return cityinfo_clone(chooser->cityinfo);
+}
+
+void
+hildon_time_zone_chooser_free(HildonTimeZoneChooser *chooser)
+{
+  gtk_widget_hide_all(chooser->window);
+  hildon_pannable_map_free(chooser->map);
+  gtk_widget_destroy(chooser->window);
+  cityinfo_free(chooser->cityinfo);
+  g_free(chooser);
+}
+
+static gboolean
+run_timeout_cb(gpointer user_data)
+{
+  HildonTimeZoneChooser *chooser = user_data;
+
+  if (chooser)
+  {
+    static struct tm local_time;
+    Cityinfo *city;
+
+    time_get_local(&local_time);
+    chooser->run_timer_id =
+        gdk_threads_add_timeout(1000 * (60 - local_time.tm_sec) + 500,
+                                run_timeout_cb, chooser);
+    city = hildon_pannable_map_get_city(chooser->map);
+
+    if (city)
+    {
+      _map_update_cb(city, chooser);
+      cityinfo_free(city);
+    }
+  }
+
+  return FALSE;
+}
+
+FeedbackDialogResponse
+hildon_time_zone_chooser_run(HildonTimeZoneChooser *chooser)
+{
+  GdkDisplay *dpy = gdk_drawable_get_display(chooser->window->window);
+
+  unsigned long val = 1;
+
+  gtk_widget_show_all(chooser->window);
+  gtk_window_fullscreen(GTK_WINDOW(chooser->window));
+
+  XChangeProperty(gdk_x11_display_get_xdisplay(dpy),
+                  gdk_x11_drawable_get_xid(chooser->window->window),
+                  gdk_x11_get_xatom_by_name_for_display(
+                    dpy, "_HILDON_ZOOM_KEY_ATOM"),
+                  XA_INTEGER, 32, PropModeReplace, (unsigned char *)&val, 1);
+
+  run_timeout_cb(chooser);
+  gtk_main();
+
+  hildon_pannable_map_clear_cache();
+
+  return chooser->response;
 }

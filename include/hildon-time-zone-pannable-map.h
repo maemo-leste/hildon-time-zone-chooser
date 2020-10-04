@@ -28,8 +28,17 @@ hildon_pannable_map_zoom_in(HildonPannableMap *map);
 void
 hildon_pannable_map_zoom_out(HildonPannableMap *map);
 
+void
+hildon_pannable_map_set_city(HildonPannableMap *map, const Cityinfo *city);
+
 Cityinfo *
 hildon_pannable_map_get_city(HildonPannableMap *map);
 
 void
 hildon_pannable_map_stop(HildonPannableMap *map);
+
+void
+hildon_pannable_map_free(HildonPannableMap *map);
+
+void
+hildon_pannable_map_clear_cache(void);

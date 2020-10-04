@@ -1,3 +1,6 @@
+#include <hildon/hildon.h>
+#include <cityinfo.h>
+
 typedef struct _HildonTimeZoneSearch HildonTimeZoneSearch;
 
 HildonTimeZoneSearch *
@@ -14,4 +17,4 @@ Cityinfo *
 hildon_time_zone_search_get_city(HildonTimeZoneSearch *tz_search);
 
 void
-hildon_time_zone_search_free(HildonTimeZoneSearch *tz);
+hildon_time_zone_search_free(HildonTimeZoneSearch *tz_search);

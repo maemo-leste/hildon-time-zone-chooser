@@ -5,6 +5,9 @@ typedef struct _HildonTimeZoneChooser HildonTimeZoneChooser;
 
 typedef enum
 {
+  /** Unknown responce */
+  FEEDBACK_DIALOG_RESPONSE_UNKNOWN = 0,
+
   /** A city was chosen */
   FEEDBACK_DIALOG_RESPONSE_CITY_CHOSEN = 1,
 

@@ -709,3 +709,59 @@ hildon_pannable_map_new(float step, gboolean interactive, gboolean border,
 
   return map;
 }
+
+void
+hildon_pannable_map_set_city(HildonPannableMap *map, const Cityinfo *city)
+{
+  if (map && city)
+  {
+    if (map->city)
+      cityinfo_free(map->city);
+
+    map->city = cityinfo_clone(city);
+
+    map->width = cityinfo_get_xpos(map->city) * -1500.0;
+    map->height = cityinfo_get_ypos(map->city) * -919.0;
+
+    hildon_pannable_map_redraw(map);
+  }
+}
+
+void
+hildon_pannable_map_clear_cache()
+{
+  if (maps_images[ZOOM_HALF])
+  {
+    g_object_unref(maps_images[ZOOM_HALF]);
+    maps_images[ZOOM_HALF] = NULL;
+  }
+
+  if (maps_images[ZOOM_DOUBLE])
+  {
+    g_object_unref(maps_images[ZOOM_DOUBLE]);
+    maps_images[ZOOM_DOUBLE] = NULL;
+  }
+}
+
+void
+hildon_pannable_map_free(HildonPannableMap *map)
+{
+  if (!map)
+    return;
+
+  stop_motion_timer(map);
+
+  if (map->region)
+  {
+    gdk_region_destroy(map->region);
+    map->region = NULL;
+  }
+
+  gtk_widget_hide_all(map->canvas);
+  gtk_widget_destroy(map->canvas);
+  cityinfo_free(map->city);
+
+  hildon_pannable_map_clear_cache();
+
+  g_free(map);
+}
